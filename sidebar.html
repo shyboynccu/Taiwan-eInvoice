@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <!-- The CSS package above applies Google styling to buttons and other elements. -->
+
+    <style>
+    .branding-below {
+      bottom: 54px;
+      top: 0;
+    }
+    
+    .branding-text {
+      left: 7px;
+      position: relative;
+      top: 3px;
+    }
+    
+    .logo {
+      vertical-align: middle;
+    }
+    
+    .width-100 {
+      width: 100%;
+      box-sizing: border-box;
+      -webkit-box-sizing : border-box;‌
+      -moz-box-sizing : border-box;
+    }
+
+    .width-50 {
+      width: 50%;
+      box-sizing: border-box;
+      -webkit-box-sizing : border-box;‌
+      -moz-box-sizing : border-box;
+    }
+    
+    label {
+      font-weight: bold;
+    }
+    
+    #carrier-options,
+    #respondent-options {
+      background-color: #eee;
+      border-color: #eee;
+      border-width: 5px;
+      border-style: solid;
+    }
+    
+    #carrier-phone,
+    #respondent-email,
+    #button-bar,
+    #submit-subject {
+      margin-bottom: 10px;
+    }
+    
+    #response-step {
+      display: inline;
+    }
+    
+    </style>
+  </head>
+  <body>
+    <div class="sidebar branding-below">
+      <form>
+        <div class="block">
+          <b>載具資訊</b>
+        </div>
+        <div class="block form-group" id="carrier-options">
+          <label for="carrier-phone">
+            手機條碼 (範例: /AB56P5Q)
+          </label>
+          <input type="text" class="width-100" maxlength="10" id="carrier-phone">
+          
+          <label for="carrier-pin">
+            驗證碼
+          </label>
+          <input type="password" class="width-100" maxlength="16" id="carrier-pin">
+
+        </div>
+    
+        <div class="block">
+          <input type="checkbox" id="save-prefs">
+          <label for="save-prefs">
+          記住我的設定</label>
+        </div>
+        <div class="block" id="button-bar">
+          <button class="action" id="sync-einvoice">立即同步</button>
+          <button type="reset">重設</button>
+        </div>
+      </form>
+    </div>
+    
+    <div class="sidebar bottom" align="right">
+      <img alt="Add-on logo" class="logo" width="25"
+          src="https://googledrive.com/host/0B0G1UdyJGrY6XzdjQWF4a1JYY1k/form-notifications-logo-small.png">
+      <a href="https://github.com/shyboynccu/Taiwan-eInvoice">
+      <img alt="Fork me on GitHub" title="Fork me on GitHub" class="logo" width="30"
+          src="https://assets-cdn.github.com/images/modules/logos_page/GitHub-Mark.png"></a>
+    </div>
+    
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
+    </script>
+    <script>
+      /**
+       * On document load, assign required handlers to each element,
+       * and attempt to load any saved settings.
+       */
+      $(function() {
+        $('#sync-einvoice').click(doSync)
+        
+        
+        google.script.run
+           .withSuccessHandler(loadSettings)
+           .withFailureHandler(showStatus)
+           .withUserObject($('#button-bar').get())
+           .getSettings();
+      });
+    
+      /**
+       * Callback function that populates the notification options using
+       * previously saved values.
+       *
+       * @param {Object} settings The saved settings from the client.
+       */
+      function loadSettings(settings) {
+        $('#carrier-phone').val(settings.cardNo);
+        $('#carrier-pin').val(settings.cardPin);
+        if (settings.savePrefs === 'true') {
+          $('#save-prefs').prop('checked', true);
+        }
+      }
+
+      /**
+       * Collects the options specified in the add-on sidebar and sends them to
+       * be saved as Properties on the server.
+       */
+      function doSync() {
+        this.disabled = true;
+        $('#status').remove();
+        
+        var savePrefs = $('#save-prefs').is(':checked');
+        var phoneNumber = $('#carrier-phone').val().trim();
+        var pinNumber = $('#carrier-pin').val().trim();
+        
+        var settings = {
+          'savePrefs': savePrefs,
+          'cardNo': phoneNumber,
+          'cardPin': pinNumber
+        };
+        
+        // Save the settings on the server
+        google.script.run
+            .withSuccessHandler(
+              function(msg, element) {
+                showStatus('同步完成', $('#button-bar'));
+                element.disabled = false;
+              })
+            .withFailureHandler(
+              function(msg, element) {
+                showStatus(msg, $('#button-bar'));
+                element.disabled = false;
+              })
+            .withUserObject(this)
+            .doSync(settings);
+      }
+    
+      /**
+       * Inserts a div that contains an status message after a given element.
+       *
+       * @param {String} msg The status message to display.
+       * @param {Object} element The element after which to display the Status.
+       */
+      function showStatus(msg, element) {
+         var div = $('<div>')
+             .attr('id', 'status')
+             .attr('class','error')
+             .text(msg);
+        $(element).after(div);
+      }
+    </script>
+  </body>
+</html>
