@@ -11,14 +11,13 @@ function doSync(settings) {
     userProperties.deleteProperty('cardPin');
   }
   
-  CARDNO = settings['cardNo']
-  CARDENCRYPT = settings['cardPin']
+  CARDNO = settings['cardNo'];
+  CARDENCRYPT = settings['cardPin'];
   
-  if(syncCurrentMonth()) {
-    //success
-  } else {
-    throw ("同步失敗！請確認條碼或驗證碼是否有誤。");
-  }
+  year = parseInt(settings['einvoice-year']);
+  month = parseInt(settings['einvoice-month']);
+  
+  return syncByMonth(year, month);
 }
 
 function getSettings() {

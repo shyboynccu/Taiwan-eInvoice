@@ -5,31 +5,32 @@ function onInstall(e) {
 function onOpen(e) {
   var ui = SpreadsheetApp.getUi();
   // Or DocumentApp or FormApp.
-  ui.createMenu('電子發票')
-      .addItem('同步當月發票', 'openSidebar')
+  ui.createMenu(RES.TOP_MENU_NAME)
+      .addItem(RES.MENU_SYNC_BY_MONTH, 'openSidebar')
       .addToUi();
 }
 
 function openSidebar() {
- var html = HtmlService.createHtmlOutputFromFile('sidebar').setTitle('台灣電子發票')
+ //var html = HtmlService.createHtmlOutputFromFile('sidebar').setTitle(RES.SIDEBAR_TITLE)
+ var html = HtmlService.createTemplateFromFile('sidebar').evaluate().setTitle(RES.SIDEBAR_TITLE)
                        .setSandboxMode(HtmlService.SandboxMode.IFRAME);
  SpreadsheetApp.getUi().showSidebar(html);
 }
 
-function syncCurrentMonth() {
-  var today = new Date();
-  var startOfTheMonth = new Date(today.getYear(), today.getMonth(), 1)
+function syncByMonth(year, month /*start from 0*/) {
+  var startOfTheMonth = new Date(year, month, 1);
+  var endOfTheMonth = new Date(year, month+1, 0);
   
-  var overview_sheet_name = "電子發票:" + today.getYear() + "/" + (today.getMonth()+1);
+  var startDate = formatDateString(startOfTheMonth.getFullYear(), startOfTheMonth.getMonth() + 1, startOfTheMonth.getDate());
+  var endDate = formatDateString(endOfTheMonth.getFullYear(), endOfTheMonth.getMonth() + 1, endOfTheMonth.getDate()); 
+  
   var active_spread_sheet = SpreadsheetApp.getActiveSpreadsheet();
-  
-  var overview_sheet = active_spread_sheet.getSheetByName(overview_sheet_name);
-  
-  var startDate = formatDateString(startOfTheMonth.getYear(), startOfTheMonth.getMonth() + 1, startOfTheMonth.getDate());
-  
+  var overview_sheet_name = RES.OVERVIEW_SHEET_PREFIX + ":" + year + "/" + (month + 1);
+  var overview_sheet = active_spread_sheet.getSheetByName(overview_sheet_name);  
   if (overview_sheet == null) {
+    // User clicked "Yes".
     overview_sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(overview_sheet_name);
-    overview_sheet.appendRow(["發票日期", "發票號碼", "發票金額", "商店名稱"]);
+    overview_sheet.appendRow(RES.OVERVIEW_SHEET_COLUMN_NAMES);
     overview_sheet.setColumnWidth(4, 300);
     overview_sheet.setFrozenRows(1);
   } else {
@@ -38,12 +39,13 @@ function syncCurrentMonth() {
     if (last_row > 1) {
       var lastInvoiceDate = overview_sheet.getRange(overview_sheet.getLastRow(), 1).getValue();
       if (startOfTheMonth < lastInvoiceDate) {
-        startDate = formatDateString(lastInvoiceDate.getYear(), lastInvoiceDate.getMonth() + 1, lastInvoiceDate.getDate() + 1);
+        startDate = formatDateString(lastInvoiceDate.getFullYear(), lastInvoiceDate.getMonth() + 1, lastInvoiceDate.getDate() + 1);
       }
     } 
   }
   
-  var endDate = formatDateString(today.getYear(), today.getMonth() + 1, today.getDate()); 
+  Logger.log("Sync from " + startDate + " to " + endDate);
+  
   var invoice_headers = query_carrier_invoice_header(startDate, endDate).details;
   
   if (invoice_headers) {
@@ -64,11 +66,20 @@ function syncCurrentMonth() {
   }
 }
 
+function syncCurrentMonth() {
+  var today = new Date();
+  
+  var year = today.getFullYear();
+  var month = today.getMonth();
+  
+  return syncByMonth(year, month);
+}
+
 function updateInvDetail(invNum, invDate) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("電子發票明細");
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(RES.DETAIL_SHEET_PREFIX);
   if (sheet == null) {
-    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("電子發票明細");
-    sheet.appendRow(["發票日期", "發票號碼", "消費項細", "項目金額", "商店名稱"]);
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(RES.DETAIL_SHEET_PREFIX);
+    sheet.appendRow(RES.DETAIL_SHEET_COLUMN_NAMES);
     sheet.setFrozenRows(1);
   }
   

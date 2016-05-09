@@ -8,6 +8,7 @@ function get_script_property(key) {
 }
 
 function gen_uuid() {
+  //return UiApp.getActiveApplication().getId();
   return get_script_property("UUID");
 }
 

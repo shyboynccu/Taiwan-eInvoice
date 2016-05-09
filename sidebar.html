@@ -4,7 +4,8 @@
     <base target="_top">
     <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
     <!-- The CSS package above applies Google styling to buttons and other elements. -->
-
+    
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <style>
     .branding-below {
       bottom: 54px;
@@ -63,17 +64,42 @@
   <body>
     <div class="sidebar branding-below">
       <form>
-        <div class="block">
-          <b>載具資訊</b>
+        <label>
+          <b><?= RES.EINVOICE_YEAR_MONTH ?></b>
+        </label>
+        <div class="block form-group" id="einvoice-options">
+          <select id="einvoice-year">
+          </select>
+
+          <select id="einvoice-month">
+            <option value="0">01</option>
+            <option value="1">02</option>
+            <option value="2">03</option>
+            <option value="3">04</option>
+            <option value="4">05</option>
+            <option value="5">06</option>
+            <option value="6">07</option>
+            <option value="7">08</option>
+            <option value="8">09</option>
+            <option value="9">10</option>
+            <option value="10">11</option>
+            <option value="11">12</option>
+          </select>
         </div>
+        
+        <br/>
+        
+        <label>
+          <b><?= RES.CARRIER_INFO ?></b>
+        </label>
         <div class="block form-group" id="carrier-options">
           <label for="carrier-phone">
-            手機條碼 (範例: /AB56P5Q)
+            <?= RES.CARRIER_PHONE_BARCODE ?> (<?= RES.EXAMPLE ?>: /AB56P5Q)
           </label>
           <input type="text" class="width-100" maxlength="10" id="carrier-phone">
           
           <label for="carrier-pin">
-            驗證碼
+            <?= RES.CARDENCRYPT ?>
           </label>
           <input type="password" class="width-100" maxlength="16" id="carrier-pin">
 
@@ -82,11 +108,11 @@
         <div class="block">
           <input type="checkbox" id="save-prefs">
           <label for="save-prefs">
-          記住我的設定</label>
+          <?= RES.REMEMBER_MY_SETTINGS ?></label>
         </div>
         <div class="block" id="button-bar">
-          <button class="action" id="sync-einvoice">立即同步</button>
-          <button type="reset">重設</button>
+          <button class="action" id="sync-einvoice"><?= RES.SYNC_NOW ?></button>
+          <button type="reset"><?= RES.RESET ?></button>
         </div>
       </form>
     </div>
@@ -99,8 +125,6 @@
           src="https://assets-cdn.github.com/images/modules/logos_page/GitHub-Mark.png"></a>
     </div>
     
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
-    </script>
     <script>
       /**
        * On document load, assign required handlers to each element,
@@ -115,6 +139,12 @@
            .withFailureHandler(showStatus)
            .withUserObject($('#button-bar').get())
            .getSettings();
+        
+        var today = new Date();
+        var year = today.getFullYear();
+        $('#einvoice-year').append('<option value="' + (year-1) + '">' + (year-1) + '</option>');
+        $('#einvoice-year').append('<option value="' + year + '" selected>' + year + '</option>');
+        $('#einvoice-month').val(today.getMonth());
       });
     
       /**
@@ -143,17 +173,25 @@
         var phoneNumber = $('#carrier-phone').val().trim();
         var pinNumber = $('#carrier-pin').val().trim();
         
-        var settings = {
+        var params = {
           'savePrefs': savePrefs,
           'cardNo': phoneNumber,
-          'cardPin': pinNumber
+          'cardPin': pinNumber,
+          'einvoice-year': $('#einvoice-year').val().trim(),
+          'einvoice-month': $('#einvoice-month').val().trim()
         };
         
         // Save the settings on the server
         google.script.run
             .withSuccessHandler(
-              function(msg, element) {
-                showStatus('同步完成', $('#button-bar'));
+              function(result, element) {
+                if (result == true) {
+                  msg = "<?= RES.SYNC_COMPLETE ?>";
+                } else {
+                  msg = "<?= RES.SYNC_FAILED ?>";
+                }
+                
+                showStatus(msg, $('#button-bar'));
                 element.disabled = false;
               })
             .withFailureHandler(
@@ -162,7 +200,7 @@
                 element.disabled = false;
               })
             .withUserObject(this)
-            .doSync(settings);
+            .doSync(params);
       }
     
       /**
